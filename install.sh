@@ -279,18 +279,24 @@ done
 
 # 3. Генерация управляющего скрипта
 echo -e "${CYAN}[3/4] Создание управляющего скрипта ${SCRIPT_PATH}...${NC}"
-cat <<'EOSCRIPT' > "$SCRIPT_PATH"
+cat <<EOF > "$SCRIPT_PATH"
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET_IP="__TARGET_IP__"
-CHAIN_PREROUTING="F___TAG___PRE"
-CHAIN_POSTROUTING="F___TAG___POST"
-CHAIN_OUTPUT="F___TAG___OUT"
-CHAIN_FORWARD="F___TAG___FWD"
+TARGET_IP="${TARGET_IP}"
+CHAIN_PREROUTING="F_${RAW_TAG}_PRE"
+CHAIN_POSTROUTING="F_${RAW_TAG}_POST"
+CHAIN_OUTPUT="F_${RAW_TAG}_OUT"
+CHAIN_FORWARD="F_${RAW_TAG}_FWD"
 
 MAPPINGS=(
-__MAPPINGS__
+EOF
+
+for m in "${PARSED_MAPPINGS[@]}"; do
+    echo "    \"$m\"" >> "$SCRIPT_PATH"
+done
+
+cat <<'EOSCRIPT' >> "$SCRIPT_PATH"
 )
 
 start() {
@@ -361,14 +367,6 @@ case "${1:-start}" in
 esac
 EOSCRIPT
 
-MAPPINGS_STR=""
-for m in "${PARSED_MAPPINGS[@]}"; do
-    MAPPINGS_STR+="    \"$m\""$'\n'
-done
-
-sed -i "s|__TARGET_IP__|${TARGET_IP}|g" "$SCRIPT_PATH"
-sed -i "s|__TAG__|${RAW_TAG}|g" "$SCRIPT_PATH"
-sed -i "/__MAPPINGS__/c\\${MAPPINGS_STR%$'\n'}" "$SCRIPT_PATH"
 chmod +x "$SCRIPT_PATH"
 
 # 4. Создание systemd-юнита
