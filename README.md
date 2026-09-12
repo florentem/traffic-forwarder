@@ -1,51 +1,53 @@
 # Traffic Forwarder
 
-Универсальный и легковесный инструмент настройки ядра Linux и создания `systemd`-сервиса для трансляции портов (L4 DNAT + MASQUERADE) через сервера-форвардеры.
+Универсальный и легковесный скрипт для настройки ядра Linux и создания `systemd`-сервиса трансляции трафика (L4 DNAT + MASQUERADE) через сервера-форвардеры на основной сервер Minecraft (**danki**).
+
+По умолчанию настроен на проброс:
+- **25565 (TCP)** — Minecraft (Velocity)
+- **24454 (UDP)** — Simple Voice Chat
 
 ## Возможности
 - **Работа на уровне ядра**: нулевой оверхед по памяти и процессору (iptables DNAT + MASQUERADE).
 - **Авто-настройка ядра**: автоматически включает `net.ipv4.ip_forward=1` в рантайме и персистентно в `/etc/sysctl.d/`.
-- **Изолированные цепочки**: создаёт собственные цепочки iptables, не конфликтует с Docker, UFW или существующими правилами.
-- **Поддержка любых протоколов**: TCP, UDP или оба сразу (`both`).
-- **Полноценный systemd-сервис**: автоматический запуск при загрузке сервера, чистое удаление правил при остановке (`systemctl stop`).
-- **Поддержка UFW**: автоматически открывает порты в фаерволе, если UFW активен.
+- **Изолированные цепочки**: не конфликтует с Docker, UFW или существующими правилами iptables.
+- **Полноценный systemd-сервис**: автозапуск при загрузке сервера, чистый сброс правил при остановке (`systemctl stop`).
+- **Поддержка UFW**: автоматически открывает нужные порты в фаерволе, если UFW активен.
 
 ---
 
 ## Быстрая установка (One-Liner)
 
+Запустите на **сервере-форвардере**:
+
 ```bash
-curl -sSL https://raw.githubusercontent.com/florentem/traffic-forwarder/main/install.sh | sudo bash -s -- \
-  --target <IP_СЕРВЕРА> \
-  --port <ПОРТЫ>
+curl -sSL https://raw.githubusercontent.com/florentem/traffic-forwarder/main/install.sh | sudo bash -s -- 89.23.123.4
+```
+*Или с явным флагом:*
+```bash
+curl -sSL https://raw.githubusercontent.com/florentem/traffic-forwarder/main/install.sh | sudo bash -s -- -t 89.23.123.4
 ```
 
-### Примеры использования
+Скрипт автоматически:
+1. Включит `net.ipv4.ip_forward=1` в ядре.
+2. Настроит проброс порта `25565` (TCP) и `24454` (UDP) на `89.23.123.4`.
+3. Создаст и запустит systemd-сервис `traffic-forwarder.service`.
 
-#### 1. Проброс только SSH (порт 2222 форвардера -> 22 порт целевого сервера):
+---
+
+## Кастомные порты (опционально)
+
+Если нужно указать другие или дополнительные порты:
 ```bash
 curl -sSL https://raw.githubusercontent.com/florentem/traffic-forwarder/main/install.sh | sudo bash -s -- \
   -t 89.23.123.4 \
-  -p 2222:22
-```
-*Подключение:* `ssh -p 2222 user@<IP_ФОРВАРДЕРА>`
-
-#### 2. Проброс SSH, игрового трафика (25565 TCP) и голосового чата (24454 UDP):
-```bash
-curl -sSL https://raw.githubusercontent.com/florentem/traffic-forwarder/main/install.sh | sudo bash -s -- \
-  -t 89.23.123.4 \
-  -p 2222:22 \
   -p 25565 \
   -p 24454/udp
 ```
 
----
-
-## Форматы аргумента `--port` (`-p`)
-- `2222:22` — внешний порт 2222 транслируется в 22 целевого сервера (по умолчанию TCP).
+Форматы аргумента `-p` / `--port`:
 - `25565` — порт 25565 транслируется в 25565 (TCP).
-- `24454/udp` или `24454:24454/udp` — проброс UDP-порта.
-- `8080:80/both` — проброс как TCP, так и UDP.
+- `24454/udp` — UDP-порт.
+- `25565:25565/tcp` — явное указание `ext:int/proto`.
 
 ---
 
@@ -55,7 +57,7 @@ curl -sSL https://raw.githubusercontent.com/florentem/traffic-forwarder/main/ins
 # Статус службы systemd
 sudo systemctl status traffic-forwarder
 
-# Просмотр правил и счётчиков переданных пакетов
+# Просмотр правил iptables и счётчиков переданных байт/пакетов
 sudo /usr/local/bin/traffic-forwarder.sh status
 
 # Перезапуск сервиса
