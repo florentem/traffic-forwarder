@@ -170,7 +170,7 @@ done
 # Определение имени сервиса
 if [[ -n "$USER_NAME" ]]; then
     CLEAN_NAME=$(echo "$USER_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')
-    if [[ "$CLEAN_NAME" =~ ^forwarder- ]]; then
+    if [[ "$CLEAN_NAME" =~ ^forwarder- || "$CLEAN_NAME" == "traffic-forwarder" ]]; then
         SERVICE_NAME="$CLEAN_NAME"
     else
         SERVICE_NAME="forwarder-${CLEAN_NAME}"
