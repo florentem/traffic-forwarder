@@ -321,8 +321,8 @@ start() {
 
     for m in "${MAPPINGS[@]}"; do
         IFS=':' read -r ext int proto <<< "$m"
-        iptables -t nat -A "$CHAIN_PREROUTING" -p "$proto" --dport "$ext" -j DNAT --to-destination "${TARGET_IP}:${int}"
-        iptables -t nat -A "$CHAIN_OUTPUT" -p "$proto" --dport "$ext" -j DNAT --to-destination "${TARGET_IP}:${int}"
+        iptables -t nat -A "$CHAIN_PREROUTING" -m addrtype --dst-type LOCAL -p "$proto" --dport "$ext" -j DNAT --to-destination "${TARGET_IP}:${int}"
+        iptables -t nat -A "$CHAIN_OUTPUT" -m addrtype --dst-type LOCAL ! -d 127.0.0.0/8 -p "$proto" --dport "$ext" -j DNAT --to-destination "${TARGET_IP}:${int}"
         iptables -A "$CHAIN_FORWARD" -p "$proto" -d "$TARGET_IP" --dport "$int" -j ACCEPT
         iptables -t nat -A "$CHAIN_POSTROUTING" -p "$proto" -d "$TARGET_IP" --dport "$int" -j MASQUERADE
     done
